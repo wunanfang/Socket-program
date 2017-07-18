@@ -1,0 +1,452 @@
+// TCP_ClientTest.cpp : 定义控制台应用程序的入口点。
+//
+
+#include "stdafx.h"  
+#include <WINSOCK2.H>  
+#include<stdlib.h>
+#include<String.h>
+#include <STDIO.H>  
+#include <ctype.h>
+
+#pragma  comment(lib,"ws2_32.lib")  
+
+int main(int argc, char* argv[])
+{
+	int num;
+	int search_num;//查询方式代号
+	char book_author_names[40];
+	WORD sockVersion = MAKEWORD(2, 2);
+	WSADATA data;
+	if (WSAStartup(sockVersion, &data) != 0)
+	{
+		return 0;
+	}
+
+
+	SOCKET sclient = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+	if (sclient == INVALID_SOCKET)
+	{
+		printf("invalid socket !");
+		return 0;
+	}
+
+	sockaddr_in serAddr;
+	serAddr.sin_family = AF_INET;
+	serAddr.sin_port = htons(8887);
+	serAddr.sin_addr.S_un.S_addr = inet_addr("127.0.0.1");
+	if (connect(sclient, (sockaddr *)&serAddr, sizeof(serAddr)) == SOCKET_ERROR)
+	{
+		printf("connect error !");
+		closesocket(sclient);
+		return 0;
+	}
+	
+	while (1)
+	{
+		printf("**********欢迎进入图书馆管理系统**********\n");
+		printf("*说明：普通用户仅支持查询、借阅和目录下载*\n");
+		printf("*管理员用户允许增减记录以及修改书籍信息等*\n");
+		printf("***********请选择您需要的操作*************\n");
+		printf("1、普通用户注册 ********** 2、管理员用户注册\n");
+		printf("3、普通用户登录 ********** 4、管理员用户登录\n");
+		printf("5、查询书籍     ********** 6、借阅书籍 \n");
+		printf("7、归还图书     ********** 8、管理书籍（仅限管理员）\n");
+		printf("9、图书列表信息下载 ****** 10、图书文件删除（仅限管理员）\n");
+		printf("11、退出系统    *********\n");
+		printf("请输入您的操作号:");
+		scanf("%d", &num);
+		switch (num)
+		{
+			//使用字符串数组进行
+		case 1: //普通用户注册
+			char *sendData1[5];
+			sendData1[0] = "2233";//header
+			sendData1[1] = "01"; //注册
+			sendData1[2] = "01"; //普通用户
+			char name[20];
+			char password[10];
+			char password_again[10];
+			printf("请输入您的姓名：\n");
+			/*gets(name1);*/
+			scanf("%s", name);
+			sendData1[3] = name;
+			printf("请输入您的密码：\n");
+			/*gets(password1);*/
+			scanf("%s", password);
+			sendData1[4] = password;
+			printf("请再次输入您的密码：\n");
+			scanf("%s", password_again);
+			while (strcmp(password_again, sendData1[4]))
+			{
+				printf("两次密码不一致，请再次输入您的密码：\n");
+				scanf("%s", password_again);
+			}
+			char str1[80];
+			strcpy(str1, sendData1[0]);
+			strcat(str1, sendData1[1]);
+			strcat(str1, sendData1[2]);
+			strcat(str1, sendData1[4]);
+			strcat(str1, sendData1[3]);
+			/*int num1, num2,num3;
+			num1 = atoi(sendData1[0]);
+			num2 = atoi(sendData1[1]);
+			num3 = num1 + num2;
+			itoa(num3, sendData1[5], 10);*/
+			send(sclient, str1, strlen(str1), 0);
+			break;
+
+		case 2://管理员注册
+			char *sendData2[5];
+			sendData2[0] = "2233";//header
+			sendData2[1] = "01"; //注册
+			sendData2[2] = "02"; //普通用户
+			char name1[20];
+			char password1[10];
+			char password_again1[10];
+
+			printf("请输入您的姓名：\n");
+			/*gets(name1);*/
+			scanf("%s", name1);
+			sendData2[3] = name1;
+			printf("请输入您的密码：\n");
+			/*gets(password1);*/
+			scanf("%s", password1);
+			sendData2[4] = password1;
+			printf("请再次输入您的密码：\n");
+			scanf("%s", password_again1);
+			while (strcmp(password_again1, sendData2[4]))
+			{
+				printf("两次密码不一致，请再次输入您的密码：\n");
+				scanf("%s", password_again1);
+			}
+			/*int num11, num22, num33;
+			num11 = atoi(sendData2[0]);
+			num22 = atoi(sendData2[1]);
+			num33 = num1 + num2;
+			itoa(num3, sendData2[5], 10);*/
+			char str2[80];
+			strcpy(str2, sendData2[0]);
+			strcat(str2, sendData2[1]);
+			strcat(str2, sendData2[2]);
+			strcat(str2, sendData2[4]);
+			strcat(str2, sendData2[3]);
+			//strcat(str, sendData2[5]);
+			send(sclient, str2, strlen(str2), 0);
+			break;
+
+		case 3://普通用户登录
+			char *sendData3[5]; //普通用户登录协议
+			sendData3[0] = "2233";//header
+			sendData3[1] = "02"; //注册
+			sendData3[2] = "01"; //普通用户
+			char name2[20];
+			char password2[10];
+			//char password_again1[10];
+
+			printf("请输入您的姓名：\n");
+			/*gets(name1);*/
+			scanf("%s", name2);
+			sendData3[3] = name2;
+			printf("请输入您的密码：\n");
+			/*gets(password1);*/
+			scanf("%s", password2);
+			sendData3[4] = password2;
+			/*printf("请再次输入您的密码：\n");
+			scanf("%s", password_again1);
+			while (strcmp(password_again1, sendData2[4]))
+			{
+				printf("两次密码不一致，请再次输入您的密码：\n");
+				scanf("%s", password_again1);
+			}*/
+			/*int num11, num22, num33;
+			num11 = atoi(sendData2[0]);
+			num22 = atoi(sendData2[1]);
+			num33 = num1 + num2;
+			itoa(num3, sendData2[5], 10);*/
+			char str3[80];
+			strcpy(str3, sendData3[0]);
+			strcat(str3, sendData3[1]);
+			strcat(str3, sendData3[2]);
+			strcat(str3, sendData3[4]);
+			strcat(str3, sendData3[3]);
+			//strcat(str, sendData2[5]);
+			send(sclient, str3, strlen(str3), 0);
+			break;
+
+		case 4:
+			char *sendData4[5]; //管理员登录协议
+			sendData4[0] = "2233";//header
+			sendData4[1] = "02"; //注册
+			sendData4[2] = "02"; //普通用户
+			char name4[20];
+			char password4[10];
+			//char password_again1[10];
+
+			printf("请输入您的姓名：\n");
+			/*gets(name1);*/
+			scanf("%s", name4);
+			sendData4[3] = name4;
+			printf("请输入您的密码：\n");
+			/*gets(password1);*/
+			scanf("%s", password4);
+			sendData4[4] = password4;
+
+			char str4[80];
+			strcpy(str4, sendData4[0]);
+			strcat(str4, sendData4[1]);
+			strcat(str4, sendData4[2]);
+			strcat(str4, sendData4[4]);
+			strcat(str4, sendData4[3]);
+			//strcat(str, sendData2[5]);
+			send(sclient, str4, strlen(str4), 0);
+			break;
+
+		case 5://用户查询图书信息
+			int search_num;
+			printf("*****请选择查询方式*****\n");
+			printf("***1、作者   2、书名***\n");
+			scanf("%d", &search_num);
+			switch (search_num)
+			{
+			case 2://按照书名查询协议
+				char *sendData5[5]; 
+				sendData5[0] = "2233";//header
+				sendData5[1] = "04"; //查询
+				sendData5[2] = "02"; //按照书名查找
+				sendData5[4] = "123456";
+				char bookName[10];
+				printf("请输入书名:");
+				scanf("%s", bookName);
+				sendData5[3] = bookName;
+				char str5[80];
+				strcpy(str5, sendData5[0]);
+				strcat(str5, sendData5[1]);
+				strcat(str5, sendData5[2]);
+				strcat(str5, sendData5[4]);
+				strcat(str5, sendData5[3]);
+				//strcat(str, sendData2[5]);
+				send(sclient, str5, strlen(str5), 0);
+				break;
+			case 1://按照作者查询协议
+				char *sendData8[5]; 
+				sendData8[0] = "2233";//header
+				sendData8[1] = "04"; //查询
+				sendData8[2] = "01"; //按照作者查找
+				sendData8[4] = "123456";
+				char authorName[20];
+				printf("请输入作者名:");
+				scanf("%s", authorName);
+				sendData8[3] = authorName;
+				char str8[80];
+				strcpy(str8, sendData8[0]);
+				strcat(str8, sendData8[1]);
+				strcat(str8, sendData8[2]);
+				strcat(str8, sendData8[4]);
+				strcat(str8, sendData8[3]);
+				//strcat(str, sendData2[5]);
+				send(sclient, str8, strlen(str8), 0);
+				break;
+			}
+			break;
+
+		case 6:
+			char *sendData6[5]; //按照书名借阅协议
+			sendData6[0] = "2233";//header
+			sendData6[1] = "05"; //借阅
+			sendData6[2] = "01"; //按照书名查找
+			sendData6[4] = "123456";
+			char temp_data1[20];
+			printf("请输入要借阅图书的作者名和书名（格式：作者名&书名）:\n");
+			scanf("%s", temp_data1);
+			sendData6[3] = temp_data1; 
+			char str6[80];
+			strcpy(str6, sendData6[0]);
+			strcat(str6, sendData6[1]);
+			strcat(str6, sendData6[2]);
+			strcat(str6, sendData6[4]);
+			strcat(str6, sendData6[3]);
+			//strcat(str, sendData2[5]);
+			send(sclient, str6, strlen(str6), 0);
+			break;
+			
+		case 7:
+			char *sendData7[5]; //按照作者和图书名归还图书协议
+			sendData7[0] = "2233";//header
+			sendData7[1] = "09"; //归还
+			sendData7[2] = "01"; 
+			sendData7[4] = "123456";
+			char temp_data2[20];
+			printf("请输入要归还图书的作者名和书名（格式：作者名&书名）:\n");
+			scanf("%s", temp_data2);
+			sendData7[3] = temp_data2;
+			char str7[80];
+			strcpy(str7, sendData7[0]);
+			strcat(str7, sendData7[1]);
+			strcat(str7, sendData7[2]);
+			strcat(str7, sendData7[4]);
+			strcat(str7, sendData7[3]);
+			//strcat(str, sendData2[5]);
+			send(sclient, str7, strlen(str7), 0);
+			break;
+
+		case 8://管理员管理书籍协议
+			char boo_opr_str[2];
+			int book_opr;//增减书籍操作
+			printf("***请输入您需要进行的操作代号:01为增加图书 02为删减图书\n");
+			scanf("%d", &book_opr);
+			switch (book_opr)
+			{
+			case 01:
+				char *sendData8[5];
+				sendData8[0] = "2233";//header
+				sendData8[1] = "06"; //图书操作
+				sendData8[2] = "01"; //01表示添加图书，02表示删减图书
+				sendData8[4] = "123456";
+				char temp_data[20];
+				//sendData7[3] = "wunanfang12356&computerdata";
+				printf("请输入作者名&书名:\n");
+				//scanf("%s", sendData7[3]);
+				scanf("%s", temp_data);
+				sendData8[3] = temp_data;  //这是有效的解决方法，使用strcpy会出现访问地址失败的问题
+				char str8[80];
+				strcpy(str8, sendData8[0]);
+				strcat(str8, sendData8[1]);
+				strcat(str8, sendData8[2]);
+				strcat(str8, sendData8[4]);
+				strcat(str8, sendData8[3]);
+				//strcat(str, sendData2[5]);
+				send(sclient, str8, strlen(str8), 0);
+				break;
+			case 2:
+				char *sendData9[5];
+				sendData9[0] = "2233";//header
+				sendData9[1] = "06"; //图书操作
+				sendData9[2] = "02"; //01表示添加图书，02表示删减图书
+				sendData9[4] = "123456";
+				char temp_data4[20];
+				//sendData7[3] = "wunanfang12356&computerdata";
+				printf("请输入要删除的书籍作者名&书名:\n");
+				//scanf("%s", sendData7[3]);
+				scanf("%s", temp_data4);
+				sendData9[3] = temp_data4;  //这是有效的解决方法，使用strcpy会出现访问地址失败的问题
+				char str9[80];
+				strcpy(str9, sendData9[0]);
+				strcat(str9, sendData9[1]);
+				strcat(str9, sendData9[2]);
+				strcat(str9, sendData9[4]);
+				strcat(str9, sendData9[3]);
+				//strcat(str, sendData2[5]);
+				send(sclient, str9, strlen(str9), 0);
+				break;
+			}
+			break;
+		case 9://图书信息文件下载
+			char *sendData10[5];
+			sendData10[0] = "2233";//header
+			sendData10[1] = "07"; //文件下载
+			sendData10[2] = "02"; //01表示添加图书，02表示删减图书
+			sendData10[4] = "123456";
+			sendData10[3] = "wunanfang";  //这是有效的解决方法，使用strcpy会出现访问地址失败的问题
+			char str10[80];
+			strcpy(str10, sendData10[0]);
+			strcat(str10, sendData10[1]);
+			strcat(str10, sendData10[2]);
+			strcat(str10, sendData10[4]);
+			strcat(str10, sendData10[3]);
+			//strcat(str, sendData2[5]);
+			send(sclient, str10, strlen(str10), 0);
+			break;
+		
+		case 10: //删除文件功能
+			char *sendData11[5];
+			sendData11[0] = "2233";//header
+			sendData11[1] = "08"; //文件删除
+			sendData11[2] = "02"; //仅限管理员
+			sendData11[4] = "123456";
+			sendData11[3] = "wunanfang";  //这是有效的解决方法，使用strcpy会出现访问地址失败的问题
+			char str11[80];
+			strcpy(str11, sendData11[0]);
+			strcat(str11, sendData11[1]);
+			strcat(str11, sendData11[2]);
+			strcat(str11, sendData11[4]);
+			strcat(str11, sendData11[3]);
+			//strcat(str, sendData2[5]);
+			send(sclient, str11, strlen(str11), 0);
+			break;
+
+		case 11://退出系统
+			int exit_opr;//增减书籍操作
+			printf("***请输入您需要退出的账号类别:01为普通用户 02管理员用户\n");
+			scanf("%d", &exit_opr);
+			switch (exit_opr)
+			{
+			case 1:
+				char *sendData12[5];
+				sendData12[0] = "2233";//header
+				sendData12[1] = "03"; //退出系统
+				sendData12[2] = "01"; //普通用户退出
+				sendData12[4] = "123456";
+				sendData12[3] = "wunanfang";  //这是有效的解决方法，使用strcpy会出现访问地址失败的问题
+				char str12[80];
+				strcpy(str12, sendData12[0]);
+				strcat(str12, sendData12[1]);
+				strcat(str12, sendData12[2]);
+				strcat(str12, sendData12[4]);
+				strcat(str12, sendData12[3]);
+				//strcat(str, sendData2[5]);
+				send(sclient, str12, strlen(str12), 0);
+				break;
+
+			case 2:
+				char *sendData13[5];
+				sendData13[0] = "2233";//header
+				sendData13[1] = "03"; //退出系统
+				sendData13[2] = "02"; //管理员退出
+				sendData13[4] = "123456";
+				sendData13[3] = "wunanfang";  //这是有效的解决方法，使用strcpy会出现访问地址失败的问题
+				char str13[80];
+				strcpy(str13, sendData13[0]);
+				strcat(str13, sendData13[1]);
+				strcat(str13, sendData13[2]);
+				strcat(str13, sendData13[4]);
+				strcat(str13, sendData13[3]);
+				//strcat(str, sendData2[5]);
+				send(sclient, str13, strlen(str13), 0);
+				break;
+			}
+			break;
+		}
+		//char * sendData = "1000000\n";
+		FILE *fp1 = fopen("search_download.txt", "w+");  //以二进制方式打开（创建）文件
+		if (fp1 == NULL){
+			printf("打开文件错误!\n");
+			exit(0);
+		}
+		char buffer[1024] = { 0 };
+		char recData[255];
+		int nCount;
+		int ret;
+	    //ret = recv(sclient, recData, 255, 0);
+		while ((ret = recv(sclient, recData, 255, 0)) > 0)
+		{
+			if (recData[0] == 'j' || recData[0] =='p')
+			{
+				fwrite(recData, ret, 1, fp1);
+			}
+			else
+			{
+				recData[ret] = 0x00;
+				printf(recData);
+				break;
+			}
+		}
+		fclose(fp1);
+	}
+		while (1)
+		{
+			closesocket(sclient);
+		}
+	
+	WSACleanup();
+	return 0;
+}
