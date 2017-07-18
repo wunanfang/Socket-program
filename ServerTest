@@ -222,6 +222,7 @@ int user_search_bookName(struct bookInfo *p, int booksize)
 
 	}
 	char ch = fgetc(bookInfo2);
+	
 	if (ch == EOF)
 	{
 		fclose(bookInfo2);
