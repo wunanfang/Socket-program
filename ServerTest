@@ -1,0 +1,853 @@
+// TCP_SeverTest.cpp : 定义控制台应用程序的入口点。
+//
+#include "stdafx.h"  
+#include <stdio.h>  
+#include<stdlib.h>
+#include <winsock2.h>  
+#define LIMIT 10
+#define BUF_SIZE 1024
+
+#pragma comment(lib,"ws2_32.lib")  
+//int user_register(struct userInfo *ptr_user, int size);
+char revData[255];
+char user_psw1[10];
+char admin_psw1[10];
+struct userInfo
+	{
+		char user_name[20];
+		char user_psw[10];
+	};
+struct adminInfo
+    {
+		char admin_name[20];
+		char admin_psw[10];
+    };
+struct bookInfo
+	{
+		char book_name[20];
+		char author_name[10];
+		int canRented_status = TRUE;
+	};
+/*
+user_register用来普通用户注册，使用的是结构体保存数据，最大限制为10个人。
+*/
+int user_register(struct userInfo *ptr_user, int size)
+{
+	if (size == LIMIT)
+	{
+		puts("注册人数已满。\n");
+		return 0;
+	}
+	strcpy(ptr_user[size].user_name, &revData[14]);//由于不能使用内部的数据直接赋值给结构体数组的内部变量，所以采用strcpy的方式
+	strcpy(ptr_user[size].user_psw, user_psw1);
+	return 1;
+}
+/*
+admin_register用来管理员注册，使用的是结构体保存数据，最大限制为10个人。
+*/
+int admin_register(struct adminInfo *ptr_user, int admin_size)
+{
+	if (admin_size == LIMIT)
+	{
+		puts("管理员人数已满.\n");
+		return 0;
+	}
+	strcpy(ptr_user[admin_size].admin_name, &revData[14]);//由于不能使用内部的数据直接赋值给结构体数组的内部变量，所以采用strcpy的方式
+	strcpy(ptr_user[admin_size].admin_psw, user_psw1);
+	return 1;
+}
+/*
+user_login用来普通用户登录，使用的是结构体保存数据，最大限制为10个人。
+*/
+int user_login(struct userInfo *p, int user_login_size)
+{
+	int i;
+	for ( i = 0; i < user_login_size; i++)
+	{
+		if ((!(strcmp(p[i].user_name, &revData[14]))) && (!strcmp(p[i].user_psw, user_psw1)))  //注意，strcmp函数若是字符串相等，则返回值为0，所以要取反
+		{
+			return i + 1;
+		}
+
+	}
+	return 0;
+}
+/*
+admin_login用来处理管理员用户登录
+*/
+int admin_login(struct adminInfo *p, int admin_login_size)
+{
+	int i;
+	for (i = 0; i < admin_login_size; i++)
+	{
+		if ((!(strcmp(p[i].admin_name, &revData[14]))) && (!strcmp(p[i].admin_psw, user_psw1)))  //注意，strcmp函数若是字符串相等，则返回值为0，所以要取反
+		{
+			return i + 1;
+		}
+
+	}
+	return 0;
+}
+/*
+admin_add_books函数用来添加图书信息并写入文件中
+*/
+FILE *bookInfo;
+int admin_add_books(struct bookInfo *p, int booksize)
+{
+	if ((bookInfo = fopen("AllBooks.txt", "wt+")) == NULL)  //以追加的方式打开文件
+	{
+		puts("打开文件失败！\n");
+		exit(0);
+	}
+	char data_temp[20];
+	/*printf("%s\n", &revData[14]);
+	printf("%c\n", revData[14]);*/
+	/**data_temp = &revData[14];*/
+	//strcpy(*data_temp, &revData[14]);
+	int t = 0;
+	while (revData[14 + t] != '&')    //找出找出输入的作者名
+	{
+		data_temp[t] = revData[14 + t];
+		t = t + 1;
+		
+	}
+	data_temp[t] = '\0';
+	//strncpy(data_book_name, revData[14], t);
+	strcpy(p[booksize].author_name, data_temp);//由于不能使用内部的数据直接赋值给结构体数组的内部变量，所以采用strcpy的方式
+	strcpy(p[booksize].book_name, &revData[t+15]);   //找出输入的书名
+	/*printf("%s\n", p[booksize].book_name);
+	printf("%s\n", p[booksize].author_name);*/
+	//fwrite(&p[booksize], sizeof(p[booksize]), 1, bookInfo);
+	fprintf(bookInfo,"%s\t",p[booksize].book_name);
+	fprintf(bookInfo,"%s\t\n",p[booksize].author_name);
+	//fprintf(bookInfo, "\n\r");  //文本输出换行
+	fclose(bookInfo);
+	return 1;
+
+}
+
+/*
+admin_reduce_books是管理员对图书进行删减的操作
+*/
+FILE *bookinfo3;
+int admin_reduce_books(struct bookInfo *p, int booksize)
+{
+	if ((bookinfo3 = fopen("after_reduce_books.txt", "at+")) == NULL)  //以追加的方式打开文件
+	{
+		puts("打开文件失败！\n");
+		exit(0);
+	}
+	char data_temp4[20];
+	int t = 0;
+	while (revData[14 + t] != '&')    //找出找出输入的作者名
+	{
+		data_temp4[t] = revData[14 + t];
+		t = t + 1;
+
+	}
+	data_temp4[t] = '\0';
+	for (size_t i = 0; i < booksize; i++)
+	{
+		if (!(strcmp(p[i].author_name, data_temp4)) && !(strcmp(p[i].book_name, &revData[t + 15])))
+		{
+			strcpy(p[i].author_name,"0");
+			strcpy(p[i].book_name, "0");
+			return 1;
+		}
+	}
+	return 0;
+}
+
+/*
+user_search_bookName方法是按书名查询书籍信息的方法
+*/
+FILE *bookInfo1;
+int user_search_authorName(struct bookInfo *p, int booksize)
+{
+	if ((bookInfo1 = fopen("searchResult.txt", "w+")) == NULL)  //以追加的方式打开文件
+	{
+		puts("打开文件失败！\n");
+		exit(0);
+	}
+	for (size_t i = 0; i < booksize; i++)
+	{
+		if (!(strcmp(p[i].author_name,&revData[14])))
+		{
+			/*bookNameList[0] = p[i].author_name;
+			bookNameList[1] = p[i].book_name;
+
+			strcat(name_trans, bookNameList[0]);
+			strcat(name_trans, bookNameList[1]);*/
+			fprintf(bookInfo1, "%s\t", p[i].author_name);
+			fprintf(bookInfo1, "%s\t\n", p[i].book_name);
+			//fprintf(bookInfo1, "\n\r");  //文本输出换行
+		}
+		
+	}
+	char ch = fgetc(bookInfo1);
+	if (ch == EOF)
+	{
+		fclose(bookInfo1);
+		return 0;
+	}
+	else
+	{
+		fclose(bookInfo1);
+		return 1;
+	}
+}
+/*
+user_search_bookName方法是按照书名来搜索书籍信息的
+*/
+FILE *bookInfo2;
+int user_search_bookName(struct bookInfo *p, int booksize)
+{
+	if ((bookInfo2 = fopen("bookName_searchResult.txt", "wt+")) == NULL)  //以追加的方式打开文件
+	{
+		puts("打开文件失败！\n");
+		exit(0);
+	}
+	for (size_t i = 0; i < booksize; i++)
+	{
+		if (!(strcmp(p[i].book_name, &revData[14])))
+		{
+			/*bookNameList[0] = p[i].author_name;
+			bookNameList[1] = p[i].book_name;
+
+			strcat(name_trans, bookNameList[0]);
+			strcat(name_trans, bookNameList[1]);*/
+			fprintf(bookInfo2, "%s\t", p[i].book_name);
+			fprintf(bookInfo2, "%s\t\n", p[i].author_name);
+		}
+
+	}
+	char ch = fgetc(bookInfo2);
+	if (ch == EOF)
+	{
+		fclose(bookInfo2);
+		return 0;
+	}
+	else
+	{
+		fclose(bookInfo2);
+		return 1;
+	}
+	
+	
+}
+
+/*
+isRented方法用来根据用户输入的作者名和书名来借阅书籍
+*/
+int isRented(struct bookInfo *p, int booksize)
+{
+	char data_temp1[20];
+	int t = 0;
+	while (revData[14 + t] != '&')    //找出找出输入的作者名
+	{
+		data_temp1[t] = revData[14 + t];
+		t = t + 1;
+
+	}
+	data_temp1[t] = '\0';
+	//strncpy(data_book_name, revData[14], t);
+	/*strcmp(p[booksize].author_name, data_temp1);
+	strcmp(p[booksize].book_name, &revData[t + 15]);   */
+	for (size_t i = 0; i < booksize; i++)
+	{
+		if (!(strcmp(p[i].author_name, data_temp1)) && !(strcmp(p[i].book_name, &revData[t + 15])))
+		{
+			if (p[i].canRented_status == TRUE)
+			{
+				p[i].canRented_status = FALSE;
+				return 1;
+			}
+		}
+	}
+	return 0;
+}
+
+/*
+isReturn方法用来对借出的图书进行归还的操作
+*/
+int isReturn(struct bookInfo *p,int booksize)
+{
+	char data_temp2[20];
+	int t = 0;
+	while (revData[14 + t] != '&')    //找出找出输入的作者名
+	{
+		data_temp2[t] = revData[14 + t];
+		t = t + 1;
+
+	}
+	data_temp2[t] = '\0';
+	//strncpy(data_book_name, revData[14], t);
+	/*strcmp(p[booksize].author_name, data_temp1);
+	strcmp(p[booksize].book_name, &revData[t + 15]);   */
+	for (size_t i = 0; i < booksize; i++)
+	{
+		if (!(strcmp(p[i].author_name, data_temp2)) && !(strcmp(p[i].book_name, &revData[t + 15])))
+		{
+			if (p[i].canRented_status == FALSE)
+			{
+				p[i].canRented_status = TRUE;
+				return 1;
+			}
+		}
+	}
+	return 0;
+}
+
+/*
+RealTimeBooksInfo打印当下图书信息表
+*/
+FILE *realTimeBooks;
+void realTimeBooksInfo(struct bookInfo *p, int booksize)
+{
+	if ((realTimeBooks = fopen("RealTime.txt", "wt+")) == NULL)  //以追加的方式打开文件
+	{
+		puts("打开文件失败！\n");
+		exit(0);
+	}
+	for (size_t i = 0; i <booksize; i++)
+	{
+		fprintf(realTimeBooks, "%s\t", p[i].book_name);
+		fprintf(realTimeBooks, "%s\t", p[i].author_name);
+		fprintf(realTimeBooks, "%d\t\n", p[i].canRented_status);
+	}
+	fclose(realTimeBooks);
+}
+int main(int argc, char* argv[])
+{
+	bool user_status = FALSE;  //设置标志位，用于检测用户是否登录系统，不然不进行操作
+	bool admin_status = FALSE;
+	int user_count = 0;
+	int admin_count = 0;
+	int book_size = 0;
+	struct userInfo reg[LIMIT];
+	struct adminInfo admin_reg[LIMIT];//最多允许十个用户
+	struct bookInfo books[LIMIT * 2];  //存放书籍信息
+	/*
+	今天完成注册登录任务，使用结构体数组可以很快的进行这些操作。
+	*/
+	
+	//初始化WSA  
+	WORD sockVersion = MAKEWORD(2, 2);
+	WSADATA wsaData;
+	if (WSAStartup(sockVersion, &wsaData) != 0)
+	{
+		return 0;
+	}
+	///*
+	//此处用来创建第二个套接字 测试用
+	//*/
+	//SOCKET servSock = socket(AF_INET, SOCK_STREAM, 0);
+	//sockaddr_in sockAddr;
+	//memset(&sockAddr, 0, sizeof(sockAddr));
+	//sockAddr.sin_family = PF_INET;
+	//sockAddr.sin_addr.s_addr = inet_addr("127.0.0.2");
+	//sockAddr.sin_port = htons(8000);
+	//bind(servSock, (SOCKADDR*)&sockAddr, sizeof(SOCKADDR));
+	//listen(servSock, 20);
+	//SOCKADDR clntAddr;
+	//int nSize = sizeof(SOCKADDR);
+	//SOCKET clntSock = accept(servSock, (SOCKADDR*)&clntAddr, &nSize);
+	//创建套接字  
+	SOCKET slisten = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+	if (slisten == INVALID_SOCKET)
+	{
+		printf("socket error !");
+		return 0;
+	}
+
+	//绑定IP和端口  
+	sockaddr_in sin;
+	sin.sin_family = AF_INET;
+	sin.sin_port = htons(8887);
+	sin.sin_addr.S_un.S_addr = INADDR_ANY;
+	if (bind(slisten, (LPSOCKADDR)&sin, sizeof(sin)) == SOCKET_ERROR)
+	{
+		printf("bind error !");
+	}
+
+	//开始监听  
+	if (listen(slisten, 5) == SOCKET_ERROR)
+	{
+		printf("listen error !");
+		return 0;
+	}
+
+	//循环接收数据  
+	SOCKET sClient;
+	SOCKET newClient;
+	sockaddr_in remoteAddr;
+	int nAddrlen = sizeof(remoteAddr);
+	//char revData[255];
+	char revDataPro[255];
+	int user_num = 1; //普通用户数量标识
+	FILE *fp1,*fp2;
+	if ((fp1 = fopen("user_info_new.txt", "wt+")) == NULL)
+	{
+		puts("打开文件失败！\n");
+		exit(0);
+	}
+	if ((fp2 = fopen("admin_info_new.txt", "wt+")) == NULL)
+	{
+		puts("打开文件失败！\n");
+		exit(0);
+	}
+	printf("等待连接...\n");
+	sClient = accept(slisten, (SOCKADDR *)&remoteAddr, &nAddrlen);
+	if (sClient == INVALID_SOCKET)
+	{
+		printf("accept error !");
+		return 0;
+	}
+	printf("接受到一个连接：%s \r\n", inet_ntoa(remoteAddr.sin_addr));
+	while (true)
+	{
+		//接收数据  
+		int ret = recv(sClient, revData, 255, 0);
+		if (ret > 0)
+		{
+			revData[ret] = 0x00;
+			printf(revData);
+			printf("\n");
+			//printf("%c", revData[4]);
+			char opr1 = revData[4];
+			char opr2 = revData[5];
+			int opr_num1 = int(opr1 - '0');  //单个字符转为数字的方法
+			int opr_num2 = int(opr2 - '0');
+			int opr_num = opr_num1 * 10 + opr_num2;
+			char role = revData[7];
+			int role_num = int(role - '0');
+			int psw1 = int(revData[8] - '0');
+			int psw2 = int(revData[9] - '0');
+			int psw3 = int(revData[10] - '0');
+			int psw4 = int(revData[11] - '0');
+			int psw5 = int(revData[12] - '0');
+			int psw6 = int(revData[13] - '0');
+			int psw = psw1 * 100000 + psw2 * 10000 + psw3 * 1000 + psw4 * 100 + psw5 * 10 + psw6;
+			int re_psw = 0;
+			//char user_psw1[10];
+			strncpy(user_psw1, &revData[8], 6); //字符串截取功能
+			user_psw1[6] = '\0';  //截取后加入字符串结束符
+			//printf("%s", user_psw);
+			char re_name[10];
+			
+			switch (opr_num)
+			{
+			case 1://注册
+				switch (role_num)  //注册类别
+				{
+				case 1:  //普通用户
+					if (user_register(reg,user_count))
+					{
+						fwrite(&reg[user_count],sizeof(userInfo),1,fp1);
+						user_count++;
+						char * sendData = "普通用户注册成功！\n";
+						send(sClient, sendData, strlen(sendData), 0);
+					}
+					break;
+				case 2: //管理员用户
+					if (admin_register(admin_reg,admin_count))
+					{
+						fwrite(&admin_reg[admin_count], sizeof(adminInfo), 1, fp2);
+						admin_count++;
+						char * sendData = "管理员注册成功！\n";
+						send(sClient, sendData, strlen(sendData), 0);
+					}
+					break;//管理员账号
+					//if (user_num>10)
+					//{
+					//	puts("注册人数已满。\n");
+					//	return 0;
+					//}
+					//if (user_num == 1)
+					//{
+					//	strcpy(reg[user_num].user_name, &revData[14]);//由于不能使用内部的数据直接赋值给结构体数组的内部变量，所以采用strcpy的方式
+					//	strcpy(reg[user_num].user_psw, user_psw1);
+					//	fwrite(&reg[user_num], sizeof(struct userInfo), 1, fp1);
+					//	char * sendData = "注册成功！\n";
+					//	send(sClient, sendData, strlen(sendData), 0);
+					//	
+					//    user_num++;
+
+					//}
+					//for (int i = 1; i < user_num; i++)
+					//{
+					//	/*char *sendData2 = "测试\n";
+					//	send(sClient, sendData2, strlen(sendData2), 0);*/
+					//	if (strcmp(&revData[14], reg[i].user_name))
+					//	{
+					//		char *sendData1 = "用户名已被注册，请重新注册！\n";
+					//		send(sClient, sendData1, strlen(sendData1), 0);
+					//		return 0;
+					//	}
+					//}
+					//if (user_num >= 2)
+					//{
+					//	strcpy(reg[user_num].user_name, &revData[14]);//由于不能使用内部的数据直接赋值给结构体数组的内部变量，所以采用strcpy的方式
+					//	strcpy(reg[user_num].user_psw, user_psw1);
+					//	char *sendData2 = "注册成功！\n";
+					//	send(sClient, sendData2, strlen(sendData2), 0);
+					//}
+					//user_num++;
+
+					
+					
+					
+					/*int flg = 1;
+					if (flg)
+					{
+						fprintf(fp, "%s %d\n", &revData[14], psw);
+						fflush(fp);
+						char * sendData1 = "注册成功！\n";
+						send(sClient, sendData1, strlen(sendData1), 0);
+						
+						flg--;
+
+					}*/
+					/*while (fscanf(fp, "%s %d\n", re_name, re_psw) != EOF)
+					{
+						printf("%s %d\n", re_name, re_psw);
+						if (strcmp(re_name, &revData[14]))
+						{
+							fprintf(fp, "%s %d\n", &revData[14], psw);
+							fflush(fp);
+							char * sendData = "注册成功！\n";
+							send(sClient, sendData, strlen(sendData), 0);
+						}
+						else
+						{
+							char * sendData = "用户已存在，请重新注册\n";
+							send(sClient, sendData, strlen(sendData), 0);
+						}
+						
+
+					}*/
+					
+					
+					//break;
+				}
+				break;//如果没有这个break，程序将直接进入case 2这个语句，要注意这个错误。
+			case 2://登录模块
+				switch (role_num)
+				{
+				case 1://普通用户登录
+					if (user_login(reg, user_count))
+					{
+						user_status = TRUE;
+						char * sendData = "普通用户登陆成功！\n";
+						send(sClient, sendData, strlen(sendData), 0);
+					}
+					else
+					{
+						char * sendData = "登录失败！\n";
+						send(sClient, sendData, strlen(sendData), 0);
+					}
+					break;
+				case 2://管理员用户登录
+					if (admin_login(admin_reg,admin_count))
+					{
+						admin_status = TRUE;
+						char * sendData = "管理员登陆成功！\n";
+						send(sClient, sendData, strlen(sendData), 0);
+					}
+					else
+					{
+						char * sendData = "登录失败！\n";
+						send(sClient, sendData, strlen(sendData), 0);
+					}
+					break;
+				}
+				break;
+
+			case 3://退出系统操作
+				if (admin_status || user_status)
+				{
+					switch (role_num)
+					{
+					case 1:
+						if (user_status)
+						{
+							user_status = FALSE;
+							char *sendData = "普通用户退出系统成功\n";
+							send(sClient, sendData, strlen(sendData), 0);
+						}
+						else
+						{
+							char *sendData = "管理员不允许退出普通用户登录状态\n";
+							send(sClient, sendData, strlen(sendData), 0);
+						}
+						break;
+					case 2:
+						if (admin_status)
+						{
+							admin_status = FALSE;
+							char *sendData = "管理员退出系统成功\n";
+							send(sClient, sendData, strlen(sendData), 0);
+						}
+						else
+						{
+							char *sendData = "普通用户不允许操作管理员账户！\n";
+							send(sClient, sendData, strlen(sendData), 0);
+						}
+						break;
+					}
+				}
+				else
+				{
+					char *sendData = "您似乎并没有登录\n";
+					send(sClient, sendData, strlen(sendData), 0);
+				}
+				break;
+			case 4: //图书查询操作
+				//if (admin_status || user_status)
+				if (admin_status || user_status)
+				{
+					switch (role_num)
+					{
+					case 1:
+						/*char *bookNameListReply[2];
+						char ListReply[40];*/
+						//char authorNameListReply[10];
+						/*printf("%s", books[1].author_name);
+						printf("%s", books[1].book_name);*/
+						if (user_search_authorName(books, book_size))
+						{
+							FILE *bookInfo8;
+							if ((bookInfo8 = fopen("searchResult.txt", "r+")) == NULL)  //以追加的方式打开文件
+							{
+								puts("打开文件失败！\n");
+								exit(0);
+							}
+							/*for (size_t i = 0; i < book_size; i++)
+							{
+							fprintf(bookInfo6, "%s\t", books[i].book_name);
+							fprintf(bookInfo6, "%s\t", books[i].author_name);
+							fprintf(bookInfo6, "%d\t\n", books[i].canRented_status);
+							}*/
+
+							char buffer2[200] = { 0 };  //缓冲区
+							int nCount2;
+							if ((nCount2 = fread(buffer2, 1, 200, bookInfo8)) > 0)
+							{
+								send(sClient, buffer2, nCount2, 0);
+							}
+							//shutdown(sClient, SD_SEND);  //文件读取完毕，断开输出流，向客户端发送FIN包
+							//recv(sClient, buffer2, BUF_SIZE, 0);  //阻塞，等待客户端接收完毕
+							/*char *sendData = "查询成功，请在文件中查看查询结果\n";
+							send(sClient, sendData, strlen(sendData), 0);*/
+						}
+						else
+						{
+							char *sendData = "没有查到相关书籍\n";
+							send(sClient, sendData, strlen(sendData), 0);
+						}
+						break;
+					case 2:
+						if (user_search_bookName(books, book_size))
+						{
+							FILE *bookInfo7;
+							if ((bookInfo7 = fopen("bookName_searchResult.txt", "r+")) == NULL)  //以追加的方式打开文件
+							{
+								puts("打开文件失败！\n");
+								exit(0);
+							}
+							/*for (size_t i = 0; i < book_size; i++)
+							{
+							fprintf(bookInfo6, "%s\t", books[i].book_name);
+							fprintf(bookInfo6, "%s\t", books[i].author_name);
+							fprintf(bookInfo6, "%d\t\n", books[i].canRented_status);
+							}*/
+
+							char buffer1[200] = { 0 };  //缓冲区
+							int nCount1;
+							if((nCount1 = fread(buffer1, 1, 200, bookInfo7)) > 0)
+							{
+								send(sClient, buffer1, nCount1, 0);
+							}
+							//shutdown(sClient, SD_SEND);  //文件读取完毕，断开输出流，向客户端发送FIN包
+							//recv(sClient, buffer1, BUF_SIZE, 0);  //阻塞，等待客户端接收完毕
+
+
+							/*char *sendData = "查询成功，请在文件中查看查询结果\n";
+							send(sClient, sendData, strlen(sendData), 0);*/
+							/*shutdown(sClient, SD_SEND);
+							recv(sClient, buffer, 1024, 0);
+
+							fclose(bookInfo2);*/
+						}
+						else
+						{
+							char *sendData = "没有查到相关书籍\n";
+							send(sClient, sendData, strlen(sendData), 0);
+						}
+						break;
+
+					}
+
+				}
+				else
+				{
+					char * sendData = "无权访问！请先登录\n";
+					send(sClient, sendData, strlen(sendData), 0);
+				}
+
+				break;
+
+			case 5://图书借阅操作
+				//if (admin_status || user_status)
+				if (admin_status || user_status)
+				{
+					if (isRented(books,book_size))
+					{
+						char * sendData = "该图书借阅成功！\n";
+						send(sClient, sendData, strlen(sendData), 0);
+					}
+					else
+					{
+						char * sendData = "借阅失败，无该图书或者已被借阅！\n";
+						send(sClient, sendData, strlen(sendData), 0);
+					}
+				}
+				else
+				{
+					char * sendData = "无权借阅！请先登录\n";
+					send(sClient, sendData, strlen(sendData), 0);
+				}
+				break;
+
+			case 6://图书管理（仅限管理员）
+				//if (admin_status) //调试时修改，记得改回来
+				if (admin_status) //调试时修改，记得改回来
+				{
+					switch (role_num)
+					{
+					case 1://增加图书
+						if (admin_add_books(books,book_size))
+						{
+							book_size++;
+							char * sendData = "添加书籍信息成功！\n";
+							send(sClient, sendData, strlen(sendData), 0);
+						}
+						break;
+					case 2://删减图书
+						if (admin_reduce_books(books,book_size))
+						{
+							book_size--;
+							char * sendData = "删除书籍信息成功！\n";
+							send(sClient, sendData, strlen(sendData), 0);
+						}
+						else
+						{
+							char * sendData = "删除书籍信息失败！\n";
+							send(sClient, sendData, strlen(sendData), 0);
+						}
+						break;
+					}
+				}
+				else
+				{
+					char * sendData = "无权访问！请先登录\n";
+					send(sClient, sendData, strlen(sendData), 0);
+				}
+				break;
+			case 7://图书列表下载
+				//if (admin_status || user_status)
+				if (admin_status || user_status)
+				{
+					realTimeBooksInfo(books, book_size);
+					FILE *bookInfo6;
+					if ((bookInfo6 = fopen("RealTime.txt", "r+")) == NULL)  //以追加的方式打开文件
+					{
+						puts("打开文件失败！\n");
+						exit(0);
+					}
+					/*for (size_t i = 0; i < book_size; i++)
+					{
+						fprintf(bookInfo6, "%s\t", books[i].book_name);
+						fprintf(bookInfo6, "%s\t", books[i].author_name);
+						fprintf(bookInfo6, "%d\t\n", books[i].canRented_status);
+					}*/
+					
+					char buffer[200] = { 0 };  //缓冲区
+				    int nCount;
+				    while ((nCount = fread(buffer, 1, 200, bookInfo6)) > 0)
+					{
+						//buffer[100] = 'b';
+					    send(sClient, buffer, nCount, 0);
+				    }
+				    shutdown(sClient, SD_SEND);  //文件读取完毕，断开输出流，向客户端发送FIN包
+				   // recv(sClient, buffer, BUF_SIZE, 0);  //阻塞，等待客户端接收完毕
+				    //fclose(bookInfo);
+				}
+				else
+				{
+					char * sendData = "无权访问！请先登录\n";
+					send(sClient, sendData, strlen(sendData), 0);
+				}
+				break;
+
+			case 8://文件删除功能
+				if (admin_status)
+				{
+					realTimeBooksInfo(books, book_size);
+					if (remove("RealTime.txt") == 0)
+					{
+						char * sendData = "文件删除成功\n";
+						send(sClient, sendData, strlen(sendData), 0);
+					}
+					
+				}
+				else
+					{
+						char * sendData = "操作失败，请登录管理员账号\n";
+						send(sClient, sendData, strlen(sendData), 0);
+					}
+				break; 
+
+			case 9://图书归还
+				//if (admin_status || user_status)
+				if (admin_status || user_status)
+				{
+					if (isReturn(books,book_size))
+					{
+						char * sendData = "归还图书成功\n";
+						send(sClient, sendData, strlen(sendData), 0);
+					}
+					else
+					{
+						char * sendData = "操作失败，请确认输入信息是否正确\n";
+						send(sClient, sendData, strlen(sendData), 0);
+					}
+
+
+				}
+				else
+				{
+					char * sendData = "无权归还！请先登录\n";
+					send(sClient, sendData, strlen(sendData), 0);
+				}
+				break;
+				
+			}
+			
+			
+		}
+
+		////发送数据  
+		//char * sendData = "你好，TCP客户端！\n";
+		//send(sClient, sendData, strlen(sendData), 0);
+		//closesocket(sClient);
+	}
+	//fclose(bookInfo);
+	while (1)
+	{
+		closesocket(slisten);
+	}
+	
+	WSACleanup();
+	return 0;
+}
