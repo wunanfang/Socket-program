@@ -1,3 +1,4 @@
+//此程序为客户端程序，重点在于协议的构建和封装，传递的过程
 // TCP_ClientTest.cpp : 定义控制台应用程序的入口点。
 //
 
@@ -58,6 +59,7 @@ int main(int argc, char* argv[])
 		switch (num)
 		{
 			//使用字符串数组进行
+			//开始构建协议的过程
 		case 1: //普通用户注册
 			char *sendData1[5];
 			sendData1[0] = "2233";//header
